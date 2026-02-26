@@ -7,6 +7,7 @@ AC_CONFIG_HEADERS([config.hpp])
 AC_CONFIG_SRCDIR([src/restream.cpp])
 AC_CANONICAL_HOST
 AC_CONFIG_MACRO_DIR([m4])
+AC_LANG([C++])
 
 
 ##############################################################################
@@ -24,6 +25,11 @@ AS_IF([test "${PKGCONFIG}" = "no" ],[
 AC_CHECK_HEADERS(pthread.h,,AC_MSG_ERROR([pthread is required.]))
 CPPFLAGS="${CPPFLAGS} -D_THREAD_SAFE "
 LIBS="$LIBS -pthread "
+
+##############################################################################
+###  Check setting/getting thread names
+##############################################################################
+AC_CHECK_HEADERS(pthread_np.h,[PTHREAD_NP="yes"],[PTHREAD_NP="no"])
 
 AC_MSG_CHECKING([for pthread_setname_np])
 AC_LINK_IFELSE(

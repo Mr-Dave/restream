@@ -63,7 +63,13 @@
         #define MY_CODEC_ID_VP8        CODEC_ID_VP8
         #define MY_CODEC_ID_VP9        CODEC_ID_VP9
     #endif
-
+    #if (MYFFVER <= 60016)
+        typedef uint8_t myuint;         /* Version independent uint */
+        #define MY_PROFILE_H264_HIGH   FF_PROFILE_H264_HIGH
+    #else
+        typedef const uint8_t myuint;   /* Version independent uint */
+        #define MY_PROFILE_H264_HIGH   AV_PROFILE_H264_HIGH
+    #endif
     #if (LIBAVCODEC_VERSION_MAJOR >= 57)
         #define MY_CODEC_FLAG_GLOBAL_HEADER AV_CODEC_FLAG_GLOBAL_HEADER
         #define MY_CODEC_FLAG_QSCALE        AV_CODEC_FLAG_QSCALE

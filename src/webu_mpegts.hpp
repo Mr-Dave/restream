@@ -14,7 +14,7 @@
  *    You should have received a copy of the GNU General Public License
  *    along with Restream.  If not, see <https://www.gnu.org/licenses/>.
  *
- *    Copyright 2020-2023 MotionMrDave@gmail.com
+ *    Copyright 2020-2026 MotionMrDave@gmail.com
 */
 
 #ifndef _INCLUDE_WEBU_MPEGTS_HPP_
@@ -24,7 +24,7 @@
             cls_webuts(cls_app *p_app, cls_webua *p_webua);
             ~cls_webuts();
 
-            int mpegts_avio_buf(uint8_t *buf, int buf_size);
+            int mpegts_avio_buf(myuint *buf, int buf_size);
             ssize_t mpegts_response(uint64_t pos, char *buf, size_t max);
             mhdrslt main();
 

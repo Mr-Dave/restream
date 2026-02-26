@@ -27,8 +27,6 @@
 #include "webu_ans.hpp"
 #include "webu_mpegts.hpp"
 
-
-
 bool playlist_cmp(const ctx_playlist_item& a, const ctx_playlist_item& b)
 {
     return a.fullnm < b.fullnm;
@@ -69,7 +67,8 @@ void cls_channel::playlist_load()
     if (ch_sort == "alpha") {
         std::sort(playlist.begin(), playlist.end(), playlist_cmp);
     } else {
-        std::random_shuffle(playlist.begin(), playlist.end());
+        std::shuffle(playlist.begin(), playlist.end()
+            , std::mt19937{std::random_device{}()});
     }
 }
 

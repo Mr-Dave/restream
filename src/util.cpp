@@ -260,7 +260,9 @@ void mythreadname_set(const char *abbr, int threadnbr, const char *threadname)
     #elif HAVE_PTHREAD_SETNAME_NP
         pthread_setname_np(pthread_self(), tname);
     #else
-        LOG_MSG(INF, NO_ERRNO, "Unable to set thread name %s", tname);
+        if (app != nullptr) {
+            LOG_MSG(INF, NO_ERRNO, "Unable to set thread name %s", tname);
+        }
     #endif
 
 }

@@ -60,6 +60,7 @@
     #include <mutex>
     #include <netinet/in.h>
     #include <arpa/inet.h>
+    #include <random>
 
     class cls_config;
     class cls_log;

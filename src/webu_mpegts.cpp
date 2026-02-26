@@ -27,7 +27,7 @@
 #include "webu_ans.hpp"
 #include "webu_mpegts.hpp"
 
-static int webu_mpegts_avio_buf(void *opaque, uint8_t *buf, int buf_size)
+static int webu_mpegts_avio_buf(void *opaque, myuint *buf, int buf_size)
 {
     cls_webuts *webuts =(cls_webuts *)opaque;
 
@@ -44,7 +44,7 @@ static ssize_t webu_mpegts_response(void *cls, uint64_t pos, char *buf, size_t m
 
 /**************************************************/
 
-int cls_webuts::mpegts_avio_buf(uint8_t *buf, int buf_size)
+int cls_webuts::mpegts_avio_buf(myuint *buf, int buf_size)
 {
     if (resp_size < (size_t)(buf_size + resp_used)) {
         resp_size = (size_t)(buf_size + resp_used);
@@ -573,10 +573,10 @@ int cls_webuts::streams_video_h264()
     wfl_ctx->framerate     = enc_ctx->framerate;
     wfl_ctx->keyint_min    = enc_ctx->keyint_min;
 
-    av_dict_set( &opts, "profile", "baseline", 0 );
+    av_dict_set( &opts, "profile", "main", 0 );
     av_dict_set( &opts, "crf", "17", 0 );
     av_dict_set( &opts, "tune", "zerolatency", 0 );
-    av_dict_set( &opts, "preset", "superfast", 0 );
+    av_dict_set( &opts, "preset", "fast", 0 );
     av_dict_set( &opts, "keyint", "5", 0 );
     av_dict_set( &opts, "scenecut", "200", 0 );
 
@@ -870,7 +870,7 @@ mhdrslt cls_webuts::main()
     clock_gettime(CLOCK_MONOTONIC, &time_last);
 
     response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN
-        , 512, &webu_mpegts_response, this, NULL);
+        , 32768, &webu_mpegts_response, this, NULL);
     if (response == nullptr) {
         LOG_MSG(ERR, NO_ERRNO, "Invalid response");
         return MHD_NO;
@@ -882,8 +882,9 @@ mhdrslt cls_webuts::main()
             , it->param_name.c_str(), it->param_value.c_str());
     }
 
+    MHD_add_response_header(response, "Cache-Control", "no-store,no-cache,must-revalidate,max-age=0");
     MHD_add_response_header(response, "Content-Transfer-Encoding", "BINARY");
-    MHD_add_response_header(response, "Content-Type", "application/octet-stream");
+    MHD_add_response_header(response, "Content-Type", "video/mp2t");
 
     retcd = MHD_queue_response(connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);

@@ -155,7 +155,7 @@ void cls_log::set_log_file(std::string pname)
         }
         if (log_file_name == "") {
             set_mode(LOGMODE_SYSLOG);
-            log_file_name == "syslog";
+            log_file_name = "syslog";
             LOG_MSG(NTC, NO_ERRNO, "Logging to syslog");
         }
 

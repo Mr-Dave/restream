@@ -569,7 +569,7 @@ std::string cls_config::conf_cat_desc(enum PARM_CAT pcat, bool shrt)
 /** Prints usage and options allowed from Command-line. */
 void cls_config::usage()
 {
-    printf("Restream version %s, Copyright 2023\n","0.1.1");
+    printf("Restream version %s, Copyright 2026\n","0.1.1");
     printf("\nusage:\trestream [options]\n");
     printf("\n\n");
     printf("Possible options:\n\n");
