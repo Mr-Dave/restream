@@ -92,7 +92,7 @@ void cls_config::edit_log_level(std::string &parm, enum PARM_ACT pact)
 void cls_config::edit_epg_socket(std::string &parm, enum PARM_ACT pact)
 {
     if (pact == PARM_ACT_DFLT) {
-        epg_socket = "/var/lib/tvheadend/epggrab/xmltv.sock";
+        epg_socket = "";
     } else if (pact == PARM_ACT_SET) {
         if (parm == "/") {
             LOG_MSG(NTC, NO_ERRNO, "Invalid epg_socket");
@@ -109,6 +109,30 @@ void cls_config::edit_epg_socket(std::string &parm, enum PARM_ACT pact)
         }
     } else if (pact == PARM_ACT_GET) {
         parm = epg_socket;
+    }
+    return;
+}
+
+void cls_config::edit_epg_dir(std::string &parm, enum PARM_ACT pact)
+{
+    if (pact == PARM_ACT_DFLT) {
+        epg_dir = "";
+    } else if (pact == PARM_ACT_SET) {
+        if (parm == "/") {
+            LOG_MSG(NTC, NO_ERRNO, "Invalid epg_dir");
+        } else if (parm.length() >= 1) {
+            if (parm.substr(0, 1) != "/") {
+                LOG_MSG(NTC, NO_ERRNO
+                    , "Invalid epg_dir:  Must start with a / ");
+                epg_dir = "/" + parm;
+            } else {
+                epg_dir = parm;
+            }
+        } else {
+            epg_dir = parm;
+        }
+    } else if (pact == PARM_ACT_GET) {
+        parm = epg_dir;
     }
     return;
 }
@@ -445,6 +469,7 @@ void cls_config::edit_cat00(std::string parm_nm
     } else if (parm_nm == "log_level") {    edit_log_level(parm_val, pact);
     } else if (parm_nm == "log_fflevel") {  edit_log_fflevel(parm_val, pact);
     } else if (parm_nm == "epg_socket") {   edit_epg_socket(parm_val, pact);
+    } else if (parm_nm == "epg_dir")    {   edit_epg_dir(parm_val, pact);
     } else if (parm_nm == "language_code"){ edit_language_code(parm_val, pact);
     }
 }
@@ -793,6 +818,7 @@ void cls_config::parms_init()
     parms_add("log_level",                 PARM_TYP_LIST,   PARM_CAT_00, WEBUI_LEVEL_LIMITED);
     parms_add("log_fflevel",               PARM_TYP_INT,    PARM_CAT_00, WEBUI_LEVEL_LIMITED);
     parms_add("epg_socket",                PARM_TYP_STRING, PARM_CAT_00, WEBUI_LEVEL_LIMITED);
+    parms_add("epg_dir",                   PARM_TYP_STRING, PARM_CAT_00, WEBUI_LEVEL_LIMITED);
     parms_add("language_code",             PARM_TYP_STRING, PARM_CAT_00, WEBUI_LEVEL_LIMITED);
     parms_add("webcontrol_port",           PARM_TYP_INT,    PARM_CAT_01, WEBUI_LEVEL_ADVANCED);
     parms_add("webcontrol_port2",          PARM_TYP_INT,    PARM_CAT_01, WEBUI_LEVEL_ADVANCED);

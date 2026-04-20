@@ -71,6 +71,7 @@
     class cls_webu;
     class cls_webua;
     class cls_webuts;
+    class cls_webum;
 
     extern cls_app *app;
 
@@ -140,9 +141,11 @@
     };
 
     struct ctx_playlist_item {
-        std::string   fullnm;
-        std::string   filenm;
-        std::string   displaynm;
+        std::string fullnm;
+        std::string filenm;
+        std::string displaynm;
+        int64_t     tm_dur;
+
     };
 
     struct ctx_packet_item{

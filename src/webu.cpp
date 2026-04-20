@@ -26,6 +26,7 @@
 #include "webu.hpp"
 #include "webu_ans.hpp"
 #include "webu_mpegts.hpp"
+#include "webu_meta.hpp"
 
 
 /* Initialize the MHD answer */

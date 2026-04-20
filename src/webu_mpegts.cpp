@@ -938,6 +938,6 @@ cls_webuts::cls_webuts(cls_app *p_app, cls_webua *p_webua)
 
 cls_webuts::~cls_webuts()
 {
-    myfree(&resp_image);
+    myfree(resp_image);
     free_context();
 }

@@ -124,16 +124,6 @@ void myunquote(std::string &parm)
 
 }
 
-void myfree(void *ptr_addr)
-{
-    void **ptr = (void **)ptr_addr;
-
-    if (*ptr != NULL) {
-        free(*ptr);
-        *ptr = NULL;
-    }
-}
-
 void *mymalloc(size_t nbytes)
 {
     void *dummy = calloc(nbytes, 1);

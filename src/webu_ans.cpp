@@ -26,6 +26,7 @@
 #include "webu.hpp"
 #include "webu_ans.hpp"
 #include "webu_mpegts.hpp"
+#include "webu_meta.hpp"
 
 void cls_webua::html_badreq()
 {
@@ -174,7 +175,6 @@ void cls_webua::parms_edit(const char *uri)
         , uri_cmd3.c_str());
 
 }
-
 
 /* Log the ip of the client connecting*/
 void cls_webua::get_clientip()
@@ -406,10 +406,10 @@ mhdrslt cls_webua::mhd_digest()
     /* Check for valid user name */
     if (mystrne(user, auth_user)) {
         failauth_log(true);
-        myfree(&user);
+        myfree(user);
         return mhd_digest_fail(MHD_NO);
     }
-    myfree(&user);
+    myfree(user);
 
     /* Check the password as well*/
     retcd = MHD_digest_auth_check(connection, auth_realm
@@ -471,21 +471,21 @@ mhdrslt cls_webua::mhd_basic()
 
     user = MHD_basic_auth_get_username_password (connection, &pass);
     if ((user == NULL) || (pass == NULL)) {
-        myfree(&user);
-        myfree(&pass);
+        myfree(user);
+        myfree(pass);
         return mhd_basic_fail();
     }
 
     if ((mystrne(user, auth_user)) ||
         (mystrne(pass, auth_pass))) {
         failauth_log(mystrne(user, auth_user));
-        myfree(&user);
-        myfree(&pass);
+        myfree(user);
+        myfree(pass);
         return mhd_basic_fail();
     }
 
-    myfree(&user);
-    myfree(&pass);
+    myfree(user);
+    myfree(pass);
 
     authenticated = true;
 
@@ -499,8 +499,8 @@ void cls_webua::mhd_auth_parse()
     int auth_len;
     char *col_pos;
 
-    myfree(&auth_user);
-    myfree(&auth_pass);
+    myfree(auth_user);
+    myfree(auth_pass);
 
     auth_len = (int)c_conf->webcontrol_authentication.length();
     col_pos =(char*) strstr(c_conf->webcontrol_authentication.c_str() ,":");
@@ -590,37 +590,124 @@ mhdrslt cls_webua::mhd_send()
     return retcd;
 }
 
+void cls_webua::stream_cnct_cnt()
+{
+    int indx, chk;
+
+    if (chitm->cnct_cnt == 0) {
+        for (indx=0; indx < (int)chitm->pktarray->array.size(); indx++) {
+            if (chitm->pktarray->array[indx].packet != nullptr) {
+                mypacket_free(chitm->pktarray->array[indx].packet);
+                chitm->pktarray->array[indx].packet = nullptr;
+            }
+        }
+        chitm->cnct_cnt++;
+        chitm->pktarray->start = chitm->pktarray->count;
+        chk = 0;
+        while ((chitm->pktarray->start > 0) && (chk <100000)) {
+            SLEEP(0,10000L);
+            chk++;
+        }
+    } else {
+        chitm->cnct_cnt++;
+    }
+}
+
+int cls_webua::stream_type()
+{
+    if ((uri_cmd1 == "mpegts") ||
+        (uri_cmd1 == "mpegts.ts") ||
+        (uri_cmd1 == "mpeg.ts")) {
+        if (uri_cmd2 == "stream") {
+            cnct_type = WEBUA_CNCT_TS_FULL;
+        } else if (uri_cmd2 == "") {
+            cnct_type = WEBUA_CNCT_TS_FULL;
+        } else {
+            cnct_type = WEBUA_CNCT_UNKNOWN;
+            return -1;
+        }
+    } else if ((uri_cmd1 == "m3u8") ||
+        (uri_cmd1 == "mpegts.m3u8") ||
+        (uri_cmd1 == "ts.m3u8")) {
+        cnct_type = WEBUA_CNCT_M3U8;
+    } else if ((uri_cmd1 == "xmltv") ||
+        (uri_cmd1 == "xmltv.epg") ||
+        (uri_cmd1 == "epg")) {
+        cnct_type = WEBUA_CNCT_XMLTV;
+    } else if ((uri_cmd1 == "xmltvall") ||
+        (uri_cmd1 == "all.epg") ||
+        (uri_cmd1 == "allepg")) {
+        cnct_type = WEBUA_CNCT_XMLTV_ALL;
+    } else {
+        cnct_type = WEBUA_CNCT_UNKNOWN;
+        return -1;
+    }
+    return 0;
+}
+
+int cls_webua::stream_checks()
+{
+    if (channel_indx == -1) {
+        LOG_MSG(ERR, NO_ERRNO
+            , "Invalid channel specified: %s",url.c_str());
+        return -1;
+    }
+    if (channel_indx < 0) {
+        LOG_MSG(ERR, NO_ERRNO
+            , "Invalid channel specified: %s",url.c_str());
+            return -1;
+    }
+
+    if (c_webu->wb_finish == true) {
+        return -1;
+    }
+
+    return 0;
+}
+
 /* Answer the get request from the user */
 mhdrslt cls_webua::answer_get()
 {
-    mhdrslt retcd;
-
     LOG_MSG(DBG, NO_ERRNO ,"processing get");
 
-    retcd = MHD_NO;
-    if (uri_cmd1 == "mpegts") {
-        retcd = stream_main();
-        if (retcd == MHD_NO) {
-            html_badreq();
-            retcd = mhd_send();
-        }
+    if (chitm == nullptr) {        
+        html_badreq();
+        return mhd_send();
+    }
 
+    if (stream_type() == -1) {
+        html_badreq();
+        return mhd_send();
+    }
+
+    if (stream_checks() == -1) {
+        html_badreq();
+        return mhd_send();
+    }
+
+    if ((cnct_type == WEBUA_CNCT_TS_FULL)) {
+        LOG_MSG(INF, NO_ERRNO, "Starting Stream");
+        stream_cnct_cnt();
+        if (c_webuts == nullptr) {
+           c_webuts = new cls_webuts(c_app, this);
+        }
+        return c_webuts->main();
+    } else if ((cnct_type == WEBUA_CNCT_M3U8) ||
+        (cnct_type == WEBUA_CNCT_XMLTV) ||
+        (cnct_type == WEBUA_CNCT_XMLTV_ALL)) {
+        LOG_MSG(INF, NO_ERRNO, "Getting metadata");
+        if (c_webum == nullptr) {
+           c_webum = new cls_webum(c_app, this);
+        }        
+        c_webum->main(resp_page, resp_type);
+        return mhd_send();
     } else {
         resp_page = "<html><head><title>Sample Page</title>"
             "</head><body>Sample Page</body></html>";
-        /*
-        if (c_conf->webcontrol_interface == "user") {
-            html_user(webui);
-        } else {
-            html_page(webui);
-        }
-        */
-        retcd = mhd_send();
-        if (retcd == MHD_NO) {
-            LOG_MSG(NTC, NO_ERRNO ,"send page failed.");
-        }
+        return mhd_send();
     }
-    return retcd;
+    /* Should not get here*/
+    return MHD_NO;
 }
 
 mhdrslt cls_webua::answer(struct MHD_Connection *p_connection)
@@ -680,100 +767,13 @@ mhdrslt cls_webua::answer(struct MHD_Connection *p_connection)
 
 }
 
-void cls_webua::stream_cnct_cnt()
-{
-    int indx, chk;
-
-    if (chitm->cnct_cnt == 0) {
-        for (indx=0; indx < (int)chitm->pktarray->array.size(); indx++) {
-            if (chitm->pktarray->array[indx].packet != nullptr) {
-                mypacket_free(chitm->pktarray->array[indx].packet);
-                chitm->pktarray->array[indx].packet = nullptr;
-            }
-        }
-        chitm->cnct_cnt++;
-        chitm->pktarray->start = chitm->pktarray->count;
-        chk = 0;
-        while ((chitm->pktarray->start > 0) && (chk <100000)) {
-            SLEEP(0,10000L);
-            chk++;
-        }
-    } else {
-        chitm->cnct_cnt++;
-    }
-}
-
-int cls_webua::stream_type()
-{
-    if (uri_cmd1 == "mpegts") {
-        if (uri_cmd2 == "stream") {
-            cnct_type = WEBUA_CNCT_TS_FULL;
-        } else if (uri_cmd2 == "") {
-            cnct_type = WEBUA_CNCT_TS_FULL;
-        } else {
-            cnct_type = WEBUA_CNCT_UNKNOWN;
-            return -1;
-        }
-    } else {
-        cnct_type = WEBUA_CNCT_UNKNOWN;
-        return -1;
-    }
-    return 0;
-}
-
-int cls_webua::stream_checks()
-{
-    if (channel_indx == -1) {
-        LOG_MSG(ERR, NO_ERRNO
-            , "Invalid channel specified: %s",url.c_str());
-        return -1;
-    }
-    if (channel_indx < 0) {
-        LOG_MSG(ERR, NO_ERRNO
-            , "Invalid channel specified: %s",url.c_str());
-            return -1;
-    }
-
-    if (c_webu->wb_finish == true) {
-        return -1;
-    }
-
-    return 0;
-}
-
-mhdrslt cls_webua::stream_main()
-{
-
-    if (chitm == nullptr) {
-        return MHD_NO;
-    }
-
-    if (stream_type() == -1) {
-        return MHD_NO;
-    }
-
-    if (stream_checks() == -1) {
-        return MHD_NO;
-    }
-
-    if (uri_cmd1 == "mpegts") {
-        stream_cnct_cnt();
-        if (c_webuts == nullptr) {
-           c_webuts = new cls_webuts(c_app, this);
-        }
-        return c_webuts->main();
-    } else {
-        return MHD_NO;
-    }
-
-}
-
 cls_webua::cls_webua(cls_app *p_app, const char *uri)
 {
     c_app = p_app;
     c_webu = p_app->webu;
     c_conf = p_app->conf;
     c_webuts = nullptr;
+    c_webum = nullptr;
 
     url           = "";
     uri_chid      = "";
@@ -803,13 +803,12 @@ cls_webua::cls_webua(cls_app *p_app, const char *uri)
 
 cls_webua::~cls_webua()
 {
-    myfree(&auth_user);
-    myfree(&auth_pass);
-    myfree(&auth_opaque);
-    myfree(&auth_realm);
-    if (c_webuts != nullptr) {
-        delete c_webuts;
-    }
+    myfree(auth_user);
+    myfree(auth_pass);
+    myfree(auth_opaque);
+    myfree(auth_realm);
+    mydelete(c_webuts);
+    mydelete(c_webum);
 }
 
 

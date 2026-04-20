@@ -37,7 +37,11 @@ void cls_channel::playlist_load()
     DIR           *d;
     struct dirent *dir;
     ctx_playlist_item playitm;
-
+    AVFormatContext *guidefmt_ctx;
+    int             retcd;
+    struct stat buffer;   
+    
+    guidefmt_ctx = nullptr;
     playlist_count = 0;
     playlist.clear();
 
@@ -52,13 +56,31 @@ void cls_channel::playlist_load()
         while ((dir=readdir(d)) != NULL){
             if ((strstr(dir->d_name,".mkv") != NULL) ||
                 (strstr(dir->d_name,".mp4") != NULL)) {
-                playlist_count++;
-                playitm.fullnm = ch_dir;
-                playitm.fullnm += dir->d_name;
-                playitm.filenm = dir->d_name;
-                playitm.displaynm = playitm.filenm.substr(
-                    0, playitm.filenm.find_last_of("."));
-                playlist.push_back(playitm);
+                playitm.fullnm = ch_dir + std::string(dir->d_name);
+                if (stat(playitm.fullnm.c_str(), &buffer) == 0) {
+                    playlist_count++;
+                    playitm.filenm = dir->d_name;
+                    retcd = avformat_open_input(&guidefmt_ctx
+                        ,playitm.fullnm.c_str(), 0, 0);
+                    if (retcd < 0) {
+                        LOG_MSG(NTC, NO_ERRNO
+                            , "Could not open file %s"
+                            , playitm.fullnm.c_str());
+                        playitm.tm_dur = 0;
+                    } else {
+                        playitm.tm_dur = av_rescale(
+                            guidefmt_ctx->duration
+                            , 1 , AV_TIME_BASE);
+                    }
+                    avformat_close_input(&guidefmt_ctx);
+                    guidefmt_ctx = nullptr;
+                    playitm.displaynm = playitm.filenm.substr(
+                        0, playitm.filenm.find_last_of("."));
+                    playlist.push_back(playitm);
+                } else {
+                    LOG_MSG(NTC, NO_ERRNO, "Skipping file: %s"
+                        ,playitm.fullnm.c_str());            
+                }
             }
         }
     }
@@ -149,28 +171,29 @@ void cls_channel::guide_write_xml(std::string &xml)
 
     gnm = "channel"+ch_nbr;
 
+    //ISO-8859-1
+//        "  <channel id=\"%s\">\n"
+//        "    <display-name>%s</display-name>\n"
+//        "  </channel>\n"
+//        ,gnm.c_str(),gnm.c_str()
+    memset(buf,0,4096);
     snprintf(buf, 4096,
-        "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n"
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         "<!DOCTYPE tv SYSTEM \"xmlv.dtd\">\n"
         "<tv>\n"
         "  <channel id=\"%s\">\n"
         "    <display-name>%s</display-name>\n"
         "  </channel>\n"
-        "  <programme start=\"%s \" stop=\"%s \" channel=\"%s\">\n"
+        "  <programme start=\"%s\" stop=\"%s\" channel=\"%s\">\n"
         "    <title lang=\"en\">%s</title>\n"
         "  </programme>\n"
-        "  <channel id=\"%s\">\n"
-        "    <display-name>%s</display-name>\n"
-        "  </channel>\n"
-        "  <programme start=\"%s \" stop=\"%s \" channel=\"%s\">\n"
+        "  <programme start=\"%s\" stop=\"%s\" channel=\"%s\">\n"
         "    <title lang=\"en\">%s</title>\n"
         "  </programme>\n"
         "</tv>\n"
 
         ,gnm.c_str(),gnm.c_str()
         ,st1.c_str(),en1.c_str(),gnm.c_str(),dn1.c_str()
-
-        ,gnm.c_str(),gnm.c_str()
         ,st2.c_str(),en2.c_str(),gnm.c_str(),dn2.c_str()
     );
 
@@ -179,54 +202,57 @@ void cls_channel::guide_write_xml(std::string &xml)
 
 void cls_channel::guide_process()
 {
-    struct stat sfile;
     struct  sockaddr_un addr;
     ssize_t retcd;
     int fd, rc;
     std::string xml;
+    std::string tmpnm;
 
     if ((ch_finish == true) || (ch_tvhguide == false)) {
         return;
     }
-
-    /* Determine if we are on the test machine */
-    rc = stat(app->conf->epg_socket.c_str(), &sfile);
-    if(rc < 0) {
-        LOG_MSG(NTC, NO_ERRNO
-            , "Requested tvh guide but the required directory does not exist:> %s <"
-            , app->conf->epg_socket.c_str());
-        LOG_MSG(NTC, NO_ERRNO
-            , "Printing tvh guide xml to log.");
-        guide_write_xml(xml);
-        LOG_MSG(NTC, NO_ERRNO, "%s",xml.c_str());
-    }
-
-    fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (fd == -1) {
-        LOG_MSG(NTC, NO_ERRNO, "Error creating socket for the guide");
-        return;
-    }
-
-    memset(&addr,'\0', sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    snprintf(addr.sun_path,108,"%s", app->conf->epg_socket.c_str());
-    rc = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
-    if (rc == -1) {
-        LOG_MSG(NTC, NO_ERRNO, "Error connecting socket for the guide: %s"
-            , app->conf->epg_socket.c_str());
-        close(fd);
-        return;
-    }
+    /* Set the start time for the current item*/
+    time(&start_tm);
 
     guide_write_xml(xml);
-
-    retcd = write(fd, xml.c_str(), xml.length());
-    if (retcd != (ssize_t)xml.length()) {
-        LOG_MSG(NTC, NO_ERRNO
-            , "Error writing socket tried %d wrote %ld"
-            , xml.length(), retcd);
+    
+    /* Determine if we are on the test machine */
+    if (app->conf->epg_socket != "") {
+        fd = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (fd == -1) {
+            LOG_MSG(NTC, NO_ERRNO, "Error creating socket for the guide");
+            return;
+        }
+        memset(&addr,'\0', sizeof(addr));
+        addr.sun_family = AF_UNIX;
+        snprintf(addr.sun_path,108,"%s", app->conf->epg_socket.c_str());
+        rc = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
+        if (rc == -1) {
+            LOG_MSG(NTC, NO_ERRNO, "Error connecting socket for the guide: %s"
+                , app->conf->epg_socket.c_str());
+            close(fd);
+            return;
+        }
+        retcd = write(fd, xml.c_str(), xml.length());
+        if (retcd != (ssize_t)xml.length()) {
+            LOG_MSG(NTC, NO_ERRNO
+                , "Error writing socket tried %d wrote %ld"
+                , xml.length(), retcd);
+        }
+        close(fd);
     }
-    close(fd);
+
+    if (app->conf->epg_dir != "") {
+        tmpnm = app->conf->epg_dir + "/guide"+ch_nbr+".xml";
+        fd = open(tmpnm.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        retcd = write(fd, xml.c_str(), xml.length());
+        if (retcd != (ssize_t)xml.length()) {
+            LOG_MSG(NTC, NO_ERRNO
+                , "Error writing guide to file. Tried %d wrote %ld"
+                , xml.length(), retcd);
+        }
+        close(fd);
+    }
 
 }
 
@@ -306,7 +332,7 @@ cls_channel::cls_channel(int p_index, std::string p_conf)
 cls_channel::~cls_channel()
 {
 
-    delete pktarray;
-    delete infile;
+    mydelete(pktarray);
+    mydelete(infile);
 
 }

@@ -26,6 +26,7 @@
 #include "webu.hpp"
 #include "webu_ans.hpp"
 #include "webu_mpegts.hpp"
+#include "webu_meta.hpp"
 
 cls_app *app;
 
@@ -199,11 +200,11 @@ cls_app::~cls_app()
     int indx;
 
     for (indx=0; indx < app->ch_count; indx++) {
-        delete app->channels[indx];
+        mydelete(app->channels[indx]);
     }
 
-    delete webu;
-    delete conf;
-    delete log;
+    mydelete(webu);
+    mydelete(conf);
+    mydelete(log);
 
 }

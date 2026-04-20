@@ -90,7 +90,8 @@
         typedef int             mhdrslt; /* Version independent return result from MHD */
     #endif
 
-    void myfree(void *ptr_addr);
+    #define myfree(x)   {if(x!=nullptr) {free(x);  x=nullptr;}}
+    #define mydelete(x) {if(x!=nullptr) {delete x; x=nullptr;}}
 
     void *mymalloc(size_t nbytes);
     void *myrealloc(void *ptr, size_t size, const char *desc);

@@ -30,6 +30,9 @@
     enum WEBUA_CNCT {
         WEBUA_CNCT_CONTROL,
         WEBUA_CNCT_TS_FULL,
+        WEBUA_CNCT_M3U8,
+        WEBUA_CNCT_XMLTV,
+        WEBUA_CNCT_XMLTV_ALL,
         WEBUA_CNCT_UNKNOWN
     };
 
@@ -46,7 +49,7 @@
             cls_channel             *chitm;
             enum WEBUA_CNCT         cnct_type;      /* Type of connection we are processing */
             struct MHD_Connection   *connection;    /* The MHD connection value from the client */
-
+            std::string hostfull;       /* Full http name for host with port number */
             mhdrslt answer(struct MHD_Connection *connection);
 
         private:
@@ -54,8 +57,9 @@
             cls_webu        *c_webu;
             cls_config      *c_conf;
             cls_webuts      *c_webuts;
+            cls_webum       *c_webum;
 
-            std::string hostfull;       /* Full http name for host with port number */
+
             char        *auth_opaque;   /* Opaque string for digest authentication*/
             char        *auth_realm;    /* Realm string for digest authentication*/
             char        *auth_user;     /* Parsed user from config authentication string*/
@@ -93,11 +97,9 @@
             void    mhd_auth_parse();
             mhdrslt failauth_check();
 
-
             void    stream_cnct_cnt();
             int     stream_type();
             int     stream_checks();
-            mhdrslt stream_main();
 
     };
 

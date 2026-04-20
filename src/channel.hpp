@@ -32,6 +32,10 @@
             bool            ch_running;
             std::string     ch_nbr;
             std::string     ch_encode;
+            std::vector<ctx_playlist_item>    playlist;
+            int             playlist_index;
+            int             playlist_count;
+            time_t          start_tm;
 
             void    process();
 
@@ -43,9 +47,6 @@
             std::string     ch_dir;
             int             ch_index;
 
-            std::vector<ctx_playlist_item>    playlist;
-            int             playlist_index;
-            int             playlist_count;
             void            playlist_load();
 
             void guide_times(
