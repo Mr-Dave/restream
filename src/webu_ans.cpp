@@ -27,6 +27,7 @@
 #include "webu_ans.hpp"
 #include "webu_mpegts.hpp"
 #include "webu_meta.hpp"
+#include "webu_post.hpp"
 
 void cls_webua::html_badreq()
 {
@@ -161,15 +162,15 @@ void cls_webua::parms_edit(const char *uri)
         }
     }
 
-    for (indx=0; indx< c_app->ch_count; indx++) {
-        if (atoi(c_app->channels[indx]->ch_nbr.c_str()) == channel_id) {
+    for (indx=0; indx< app->ch_count; indx++) {
+        if (atoi(app->channels[indx]->ch_nbr.c_str()) == channel_id) {
             channel_indx = indx;
-            chitm = c_app->channels[indx];
+            chitm = app->channels[indx];
         }
     }
 
     LOG_MSG(DBG, NO_ERRNO
-        , "camid: >%s< thread: >%d< cmd1: >%s< cmd2: >%s< cmd3: >%s<"
+        , "channel: >%s< index: >%d< cmd1: >%s< cmd2: >%s< cmd3: >%s<"
         , uri_chid.c_str(), channel_indx
         , uri_cmd1.c_str(), uri_cmd2.c_str()
         , uri_cmd3.c_str());
@@ -689,7 +690,7 @@ mhdrslt cls_webua::answer_get()
         LOG_MSG(INF, NO_ERRNO, "Starting Stream");
         stream_cnct_cnt();
         if (c_webuts == nullptr) {
-           c_webuts = new cls_webuts(c_app, this);
+           c_webuts = new cls_webuts(app, this);
         }
         return c_webuts->main();
     } else if ((cnct_type == WEBUA_CNCT_M3U8) ||
@@ -697,7 +698,7 @@ mhdrslt cls_webua::answer_get()
         (cnct_type == WEBUA_CNCT_XMLTV_ALL)) {
         LOG_MSG(INF, NO_ERRNO, "Getting metadata");
         if (c_webum == nullptr) {
-           c_webum = new cls_webum(c_app, this);
+           c_webum = new cls_webum(app, this);
         }        
         c_webum->main(resp_page, resp_type);
         return mhd_send();
@@ -710,19 +711,14 @@ mhdrslt cls_webua::answer_get()
     return MHD_NO;
 }
 
-mhdrslt cls_webua::answer(struct MHD_Connection *p_connection)
+/* Answer the connection request for the webcontrol*/
+mhdrslt cls_webua::answer_main(struct MHD_Connection *p_connection
+    , const char *method, const char *upload_data, size_t *upload_data_size)
 {
     mhdrslt retcd;
 
     cnct_type = WEBUA_CNCT_CONTROL;
     connection = p_connection;
-
-    /* Throw bad URLS back to user*/
-    if (url.length() == 0) {
-        html_badreq();
-        retcd = mhd_send();
-        return retcd;
-    }
 
     if (c_webu->wb_finish) {
         LOG_MSG(NTC, NO_ERRNO ,"Shutting down channels");
@@ -751,18 +747,38 @@ mhdrslt cls_webua::answer(struct MHD_Connection *p_connection)
         }
     }
 
-    if (mhd_first) {
-        mhd_first = false;
-        cnct_method = WEBUA_METHOD_GET;
-        return MHD_YES;
-    }
-
-    get_hostname();
-
     client_connect();
 
-    retcd = answer_get();
+    if (mhd_first) {
+        mhd_first = false;
+        if (mystreq(method,"POST")) {
+            if (c_webup == nullptr) {
+                c_webup = new cls_webup(c_app, this);
+            }
+            cnct_method = WEBUA_METHOD_POST;
+            return c_webup->processor_init();
+        } else {
+            cnct_method = WEBUA_METHOD_GET;
+            return MHD_YES;
+        }
+    }
+    
+    if (hostfull == "") {
+        get_hostname();
+    }
 
+    if (mystreq(method,"POST")) {
+        retcd = c_webup->processor_start(upload_data, upload_data_size);
+    } else {
+        if (url.length() == 0) {
+            LOG_MSG(NTC, NO_ERRNO ,"Url length is zero");
+            html_badreq();
+            retcd = mhd_send();            
+        } else {
+            answer_get();
+            retcd = MHD_YES;
+        }
+    }
     return retcd;
 
 }
@@ -781,6 +797,7 @@ cls_webua::cls_webua(cls_app *p_app, const char *uri)
     uri_cmd2      = "";
     uri_cmd3      = "";
     clientip      = "";
+    hostfull        = "";
 
     auth_opaque   = (char*)mymalloc(WEBUA_LEN_PARM);
     auth_realm    = (char*)mymalloc(WEBUA_LEN_PARM);
@@ -809,6 +826,7 @@ cls_webua::~cls_webua()
     myfree(auth_realm);
     mydelete(c_webuts);
     mydelete(c_webum);
+    mydelete(c_webup);
 }
 
 

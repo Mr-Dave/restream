@@ -32,6 +32,7 @@
             bool            ch_running;
             std::string     ch_nbr;
             std::string     ch_encode;
+            int             ch_sync;
             std::vector<ctx_playlist_item>    playlist;
             int             playlist_index;
             int             playlist_count;

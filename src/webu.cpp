@@ -80,8 +80,7 @@ static mhdrslt mhd_answer(void *cls
 
     cls_webua *webua =(cls_webua *) *ptr;
 
-    return webua->answer(connection);
-
+    return webua->answer_main(connection, method, upload_data, upload_data_size);
 }
 
 

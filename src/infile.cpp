@@ -36,6 +36,7 @@ void cls_infile::defaults()
     ifile.audio.codec_ctx = nullptr;
     ifile.audio.strm = nullptr;
     ifile.audio.base_pdts = 0;
+    ifile.audio.sync_pts = 0;    
     ifile.video = ifile.audio;
     ifile.fmt_ctx = nullptr;
     ifile.time_start = -1;
@@ -495,6 +496,7 @@ void cls_infile::encoder_send()
     retcd = 0;
     if (pkt_in->stream_index == ifile.video.index) {
         if  (frame->pts != AV_NOPTS_VALUE) {
+            frame->pts += chitm->ch_sync;
             if (frame->pts <= ofile.video.last_pts) {
                 LOG_MSG(NTC, NO_ERRNO
                     , "Ch%s: PTS Problem %d %d"

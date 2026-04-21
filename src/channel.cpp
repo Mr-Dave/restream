@@ -297,6 +297,7 @@ cls_channel::cls_channel(int p_index, std::string p_conf)
     ch_encode = "";
     ch_index = p_index;
     ch_conf = p_conf;
+    ch_sync = 0;
     cnct_cnt = 0;
     file_cnt = 0;
 
@@ -321,6 +322,9 @@ cls_channel::cls_channel(int p_index, std::string p_conf)
         }
         if (it->param_name == "enc") {
             ch_encode = it->param_value;
+        }
+        if (it->param_name == "sync") {
+            ch_sync = mtoi(it->param_value);
         }
     }
 

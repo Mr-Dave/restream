@@ -17,7 +17,8 @@ restream_SOURCES = \
 	webu.hpp         webu.cpp \
 	webu_ans.hpp     webu_ans.cpp \
 	webu_meta.hpp    webu_meta.cpp \
-	webu_mpegts.hpp  webu_mpegts.cpp
+	webu_mpegts.hpp  webu_mpegts.cpp \
+	webu_post.hpp    webu_post.cpp	
 
 ###################################################################
 ## Create pristine directories to match exactly distributed files

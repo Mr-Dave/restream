@@ -110,6 +110,15 @@
     void mytrim(std::string &parm);
     void myunquote(std::string &parm);
 
+    int mtoi(std::string parm);
+    int mtoi(char *parm);
+    float mtof(char *parm);
+    float mtof(std::string parm);
+    bool mtob(std::string parm);
+    bool mtob(char *parm);
+    long mtol(std::string parm);
+    long mtol(char *parm);
+
     AVFrame *myframe_alloc(void);
     void myframe_free(AVFrame *frame);
     void mypacket_free(AVPacket *pkt);

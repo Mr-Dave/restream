@@ -49,16 +49,22 @@
             cls_channel             *chitm;
             enum WEBUA_CNCT         cnct_type;      /* Type of connection we are processing */
             struct MHD_Connection   *connection;    /* The MHD connection value from the client */
-            std::string hostfull;       /* Full http name for host with port number */
-            mhdrslt answer(struct MHD_Connection *connection);
-
+            std::string             hostfull;       /* Full http name for host with port number */
+            std::string             resp_page;      /* The response that will be sent */
+            enum WEBUA_RESP         resp_type;      /* indicator for the type of response to provide. */
+            
+            mhdrslt answer_main(
+                struct MHD_Connection *p_connection, const char *method
+                , const char *upload_data, size_t *upload_data_size);
+            mhdrslt mhd_send();
+            
         private:
             cls_app         *c_app;
-            cls_webu        *c_webu;
             cls_config      *c_conf;
+            cls_webu        *c_webu;
             cls_webuts      *c_webuts;
             cls_webum       *c_webum;
-
+            cls_webup       *c_webup;
 
             char        *auth_opaque;   /* Opaque string for digest authentication*/
             char        *auth_realm;    /* Realm string for digest authentication*/
@@ -75,8 +81,6 @@
             std::string uri_cmd2;       /* Parsed command2 from the url */
             std::string uri_cmd3;       /* Parsed command3 from the url */
 
-            std::string         resp_page;      /* The response that will be sent */
-            enum WEBUA_RESP     resp_type;      /* indicator for the type of response to provide. */
             enum WEBUA_METHOD   cnct_method;    /* Connection method.  Get or Post */
 
             void    parseurl();
@@ -93,7 +97,6 @@
             mhdrslt mhd_basic_fail();
             mhdrslt mhd_basic();
             mhdrslt mhd_auth();
-            mhdrslt mhd_send();
             void    mhd_auth_parse();
             mhdrslt failauth_check();
 

@@ -72,6 +72,7 @@
     class cls_webua;
     class cls_webuts;
     class cls_webum;
+    class cls_webup;
 
     extern cls_app *app;
 
@@ -164,6 +165,7 @@
         int64_t         base_pdts;
         int64_t         start_pts;
         int64_t         last_pts;
+        int64_t         sync_pts;
     };
     struct ctx_file_info {
         AVFormatContext *fmt_ctx;
@@ -189,6 +191,7 @@
             std::vector<cls_channel*>   channels;
 
             int         ch_count;
+            pthread_mutex_t     mutex_post;         /* mutex to allow for processing of post actions*/
 
             void channels_start();
             void channels_wait();

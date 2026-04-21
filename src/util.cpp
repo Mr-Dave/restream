@@ -123,6 +123,60 @@ void myunquote(std::string &parm)
     }
 
 }
+/* my to integer*/
+int mtoi(std::string parm)
+{
+    return atoi(parm.c_str());
+}
+/* my to integer*/
+int mtoi(char *parm)
+{
+    return atoi(parm);
+}
+/* my to long*/
+long mtol(std::string parm)
+{
+    return atol(parm.c_str());
+}
+/* my to long*/
+long mtol(char *parm)
+{
+    return atol(parm);
+}
+/* my to float*/
+float mtof(char *parm)
+{
+    return (float)atof(parm);
+}
+/* my to float*/
+float mtof(std::string parm)
+{
+    return (float)atof(parm.c_str());
+}
+/* my to bool*/
+bool mtob(std::string parm)
+{
+    if (mystrceq(parm.c_str(),"1") ||
+        mystrceq(parm.c_str(),"yes") ||
+        mystrceq(parm.c_str(),"on") ||
+        mystrceq(parm.c_str(),"true") ) {
+        return true;
+    } else {
+        return false;
+    }
+}
+/* my to bool*/
+bool mtob(char *parm)
+{
+    if (mystrceq(parm,"1") ||
+        mystrceq(parm,"yes") ||
+        mystrceq(parm,"on") ||
+        mystrceq(parm,"true") ) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 void *mymalloc(size_t nbytes)
 {

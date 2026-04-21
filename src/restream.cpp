@@ -188,7 +188,7 @@ cls_app::cls_app(int p_argc, char **p_argv)
     finish = false;
 
     signal_setup();
-
+    pthread_mutex_init(&mutex_post, NULL);
     log = new cls_log(this);
     conf = new cls_config(this);
     webu = new cls_webu(this);
@@ -206,5 +206,5 @@ cls_app::~cls_app()
     mydelete(webu);
     mydelete(conf);
     mydelete(log);
-
+    pthread_mutex_destroy(&mutex_post);
 }
