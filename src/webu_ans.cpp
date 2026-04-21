@@ -790,6 +790,7 @@ cls_webua::cls_webua(cls_app *p_app, const char *uri)
     c_conf = p_app->conf;
     c_webuts = nullptr;
     c_webum = nullptr;
+    c_webup = nullptr;
 
     url           = "";
     uri_chid      = "";
