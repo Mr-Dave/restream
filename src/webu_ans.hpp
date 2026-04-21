@@ -32,7 +32,6 @@
         WEBUA_CNCT_TS_FULL,
         WEBUA_CNCT_M3U8,
         WEBUA_CNCT_XMLTV,
-        WEBUA_CNCT_XMLTV_ALL,
         WEBUA_CNCT_UNKNOWN
     };
 
@@ -52,6 +51,8 @@
             std::string             hostfull;       /* Full http name for host with port number */
             std::string             resp_page;      /* The response that will be sent */
             enum WEBUA_RESP         resp_type;      /* indicator for the type of response to provide. */
+            int                     channel_indx;   /* Index number of the channel */
+            int                     channel_id;     /* channel id number requested */
             
             mhdrslt answer_main(
                 struct MHD_Connection *p_connection, const char *method
@@ -73,8 +74,6 @@
             int         mhd_first;      /* Boolean for whether it is the first connection*/
             std::string clientip;       /* IP of the connecting client */
             bool        authenticated;  /* Boolean for whether authentication has been passed */
-            int         channel_indx;   /* Index number of the channel */
-            int         channel_id;     /* channel id number requested */
             std::string url;            /* The URL sent from the client */
             std::string uri_chid;       /* Parsed channel number from the url */
             std::string uri_cmd1;       /* Parsed command1 from the url */

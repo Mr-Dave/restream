@@ -33,8 +33,7 @@
             cls_channel     *chitm;
             
             void get_m3u8(std::string &p_resp, enum WEBUA_RESP &p_type);
-            void get_xmltv(std::string &p_resp
-                , enum WEBUA_RESP &p_type, cls_channel *p_chitm);
+            void get_xmltv(std::string &p_resp, enum WEBUA_RESP &p_type);
 
     };
 

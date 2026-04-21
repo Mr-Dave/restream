@@ -162,6 +162,8 @@ void cls_webua::parms_edit(const char *uri)
         }
     }
 
+    chitm = nullptr;
+    channel_indx = -1;
     for (indx=0; indx< app->ch_count; indx++) {
         if (atoi(app->channels[indx]->ch_nbr.c_str()) == channel_id) {
             channel_indx = indx;
@@ -633,12 +635,9 @@ int cls_webua::stream_type()
         cnct_type = WEBUA_CNCT_M3U8;
     } else if ((uri_cmd1 == "xmltv") ||
         (uri_cmd1 == "xmltv.epg") ||
+        (uri_cmd1 == "epg.xmltv") ||
         (uri_cmd1 == "epg")) {
         cnct_type = WEBUA_CNCT_XMLTV;
-    } else if ((uri_cmd1 == "xmltvall") ||
-        (uri_cmd1 == "all.epg") ||
-        (uri_cmd1 == "allepg")) {
-        cnct_type = WEBUA_CNCT_XMLTV_ALL;
     } else {
         cnct_type = WEBUA_CNCT_UNKNOWN;
         return -1;
@@ -648,21 +647,21 @@ int cls_webua::stream_type()
 
 int cls_webua::stream_checks()
 {
-    if (channel_indx == -1) {
-        LOG_MSG(ERR, NO_ERRNO
-            , "Invalid channel specified: %s",url.c_str());
-        return -1;
-    }
-    if (channel_indx < 0) {
-        LOG_MSG(ERR, NO_ERRNO
-            , "Invalid channel specified: %s",url.c_str());
-            return -1;
-    }
-
     if (c_webu->wb_finish == true) {
         return -1;
+    } else if (channel_indx == -1) {
+        LOG_MSG(ERR, NO_ERRNO
+            , "Invalid channel specified: %s",url.c_str());
+        return -1;
+    } else if (channel_indx < 0) {
+        LOG_MSG(ERR, NO_ERRNO
+            , "Invalid channel specified: %s",url.c_str());
+        return -1;
+    } else if (chitm == nullptr) {
+        LOG_MSG(ERR, NO_ERRNO
+            , "Unable to find channel: %s",url.c_str());
+        return -1;
     }
-
     return 0;
 }
 
@@ -671,31 +670,24 @@ mhdrslt cls_webua::answer_get()
 {
     LOG_MSG(DBG, NO_ERRNO ,"processing get");
 
-    if (chitm == nullptr) {        
-        html_badreq();
-        return mhd_send();
-    }
-
     if (stream_type() == -1) {
-        html_badreq();
-        return mhd_send();
-    }
-
-    if (stream_checks() == -1) {
         html_badreq();
         return mhd_send();
     }
 
     if ((cnct_type == WEBUA_CNCT_TS_FULL)) {
         LOG_MSG(INF, NO_ERRNO, "Starting Stream");
+        if (stream_checks() == -1) {
+            html_badreq();
+            return mhd_send();
+        }
         stream_cnct_cnt();
         if (c_webuts == nullptr) {
            c_webuts = new cls_webuts(app, this);
         }
         return c_webuts->main();
     } else if ((cnct_type == WEBUA_CNCT_M3U8) ||
-        (cnct_type == WEBUA_CNCT_XMLTV) ||
-        (cnct_type == WEBUA_CNCT_XMLTV_ALL)) {
+        (cnct_type == WEBUA_CNCT_XMLTV)) {
         LOG_MSG(INF, NO_ERRNO, "Getting metadata");
         if (c_webum == nullptr) {
            c_webum = new cls_webum(app, this);
@@ -725,7 +717,7 @@ mhdrslt cls_webua::answer_main(struct MHD_Connection *p_connection
         return MHD_NO;
     }
 
-    if (chitm != NULL) {
+    if (chitm != nullptr) {
         if (chitm->ch_finish) {
            LOG_MSG(NTC, NO_ERRNO ,"Shutting down channels");
            return MHD_NO;
